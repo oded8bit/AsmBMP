@@ -6,9 +6,13 @@
 ;
 ; Description: Draws a BMP on the screen
 ; You need to include "defs.asm" within your DATASEG and this file within you CODESEG
+;
+; credit http://t67.tik-tak.co.il/uploadfiles/tzvia_b/users/357724/Pic48X78.txt
 ;===================================================================================================
 LOCALS @@
 
+; Video address
+VIDEO_MEMORY_ADDRESS_VGA = 0A000h
 ; BMP related size constants
 BMP_MAX_WIDTH 			 = 320
 BMP_HEADER_SIZE			 = 54
@@ -32,10 +36,28 @@ CODESEG
 ;------------------------------------------------------------------------
 ; Gets a pointer (address) to a specific field in the Bitmap struct
 ; Puts the address in specified register
+; Input:
+; 	reg - a register that will hold the pointer
+; 	base - offset of the Bitmap struct
+; 	offst - offset of the variable within the struct
 ;------------------------------------------------------------------------
 MACRO get_struc_ptr reg, base, offst
 	mov reg, base
 	add reg, offst
+ENDM
+;------------------------------------------------------------------------
+; Move file pointer over the header and palette (fseek)
+;------------------------------------------------------------------------
+MACRO fseek_loaded
+	mov ah, 42h				; Move File Pointer Using Handle
+	mov al, 1				; current location plus offset (SEEK_CUR)
+
+	get_struc_ptr si, bmp, BMP_FILE_HANDLE_OFFSET
+	mov bx, [si]
+
+	mov cx, 0
+	mov dx, BMP_SKIP_SIZE
+	int 21h
 ENDM
 ;------------------------------------------------------------------------
 ; Reads a BMP image from disk and displays it on the screen
@@ -71,11 +93,13 @@ PROC OpenShowBmp
         filePath    equ     [WORD bp+10]
     ;}
 	
+	; Open the file
 	push bmp
     call OpenBmpFile    
 	cmp ax,FALSE    
 	je @@ExitPROC
 
+	; Check if it has been loaded alrady
 	get_struc_ptr di, bmp, BMP_LOADED_OFFSET
 	cmp [WORD di], TRUE
 	je @@alreadyLoaded
@@ -91,18 +115,9 @@ PROC OpenShowBmp
 	jmp @@handlePalete
 
 @@alreadyLoaded:
-	; If the structure was already loaded in the past, 
+	; If the struct has already been loaded in the past, 
 	; move file pointer over header and palette	(fseek)
-
-	mov ah, 42h				; Move File Pointer Using Handle
-	mov al, 1				; current location plus offset (SEEK_CUR)
-
-	get_struc_ptr si, bmp, BMP_FILE_HANDLE_OFFSET
-	mov bx, [si]
-
-	mov cx, 0
-	mov dx, BMP_SKIP_SIZE
-	int 21h
+	fseek_loaded
 
 @@handlePalete:	
 	; Copy palette to screen
@@ -156,14 +171,14 @@ PROC OpenBmpFile
 	int 21h
 	jc @@ErrorAtOpen    
 
-	; Save file handle
+	; Save file handle (ax)
 	get_struc_ptr si, bmp, BMP_FILE_HANDLE_OFFSET
 	mov [si],ax
 
-    mov ax,TRUE
+    mov ax,TRUE				; Success
 	jmp @@ExitPROC	
 @@ErrorAtOpen:
-	mov ax,FALSE
+	mov ax,FALSE			; Error
 @@ExitPROC:	
 	pop si dx
     mov sp,bp
@@ -246,7 +261,7 @@ PROC ReadBmpHeader
 	get_struc_ptr di, bmp, BMP_HEIGHT_OFFSET
 	mov [di],ax
 	; Mark it loaded
-	get_struc_ptr di, bmp, BMP_LOADED_OFFSET
+	get_struc_ptr di, bmp, BMP_LOADED_OFFSET	; Loaded
 	mov [WORD di], TRUE
 
 	popa
@@ -286,8 +301,7 @@ PROC ReadBmpPalette
 	get_struc_ptr dx, bmp, BMP_PALETTE_OFFSET
 	int 21h
 	
-	pop si dx cx
-	
+	pop si dx cx	
     mov sp,bp
     pop bp
 	ret 2
@@ -328,10 +342,10 @@ PROC CopyBmpPalette
 	mov al,[si+2] 		; Red				
 	shr al,2 			; divide by 4 Max (cos max is 63 and we have here max 255 ) (loosing color resolution).				
 	out dx,al 						
-	mov al,[si+1] 		; Green.				
+	mov al,[si+1] 		; Green				
 	shr al,2            
 	out dx,al 							
-	mov al,[si] 		; Blue.				
+	mov al,[si] 		; Blue				
 	shr al,2            
 	out dx,al 							
 	add si,4 			; Point to next color.  (4 bytes for each color BGR + null)				
@@ -381,7 +395,7 @@ PROC ShowBMP
 		imgWidth   	equ		[WORD bp-4]
     ;}
     
-	mov ax, 0A000h
+	mov ax, VIDEO_MEMORY_ADDRESS_VGA			; Address of video memory
 	mov es, ax
 	
 	; File handle
@@ -419,14 +433,14 @@ PROC ShowBMP
 	add di,cx
 	add di,dx
 	
-	; small Read one line
+	; Read a single line
 	mov ah,3fh
 	mov cx,imgWidth
 	add cx,padding  				; extra  bytes to each row must be divided by 4
 	mov dx,offset _bmpSingleLine
 	int 21h
 
-	; Copy one line into video memory
+	; Copy line into video memory
 	cld 							; Clear direction flag, for movsb
 	mov ax,imgWidth
 	mov si,offset _bmpSingleLine
@@ -444,6 +458,10 @@ PROC ShowBMP
 ENDP ShowBMP 
 ;------------------------------------------------------------------------
 ; A C# like macro to display a Bitmap file on the screen
+; Input:
+;	  bmp_offset - offset of the Bitmap struct
+;	  xtopLeft - x coordinate on screen
+;	  yTopLeft - y coordinate on screen
 ; Output: 	
 ;     AX - TRUE on success, FALSE on error
 ;------------------------------------------------------------------------

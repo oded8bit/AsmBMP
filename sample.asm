@@ -17,7 +17,7 @@ STACK 256
 DATASEG
     ; This is the Bitmap that we are going to draw. Note how it is initialized
     ; with the file path (opath should be up to BMP_PATH_LENGHTH bytes)
-    Image          BMP_STRUCT   {ImagePath="b1.bmp"}
+    Image          Bitmap       {ImagePath="b1.bmp"}
     ErrMsg         db           "Could not open file",0dh, 0ah,'$'
 CODESEG
     include "bmp.asm"                               ; Include Bitmap code

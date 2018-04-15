@@ -17,7 +17,7 @@ NULL 			 = 0
 
 DATASEG
 	; The Bitmap struct
-	struc BMP_STRUCT
+	struc Bitmap
 		FileHandle	dw ?
 		Header 	    db BMP_HEADER_SIZE dup(0)
 		Palette 	db BMP_PALETTE_SIZE dup (0)
@@ -25,4 +25,4 @@ DATASEG
 		Height		dw 0
 		ImagePath   db BMP_PATH_LENGTH+1 dup(0)
 		Loaded		dw 0
-	ENDS BMP_STRUCT
+	ENDS Bitmap

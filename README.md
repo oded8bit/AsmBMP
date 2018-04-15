@@ -27,7 +27,7 @@ DATASEG
 DATASEG
     ; This is the Bitmap that we are going to draw. Note how it is initialized
     ; with the file path (opath should be up to BMP_PATH_LENGHTH bytes)
-    Image          BMP_STRUCT   {ImagePath="images\\b1.bmp"}
+    Image          Bitmap    {ImagePath="images\\b1.bmp"}
 ```
 4. Inlcude the [bmp](bmp.asm) code within CODESEG
 ```sh
