@@ -16,37 +16,44 @@ IDEAL
 MODEL small
 STACK 256
 ```
-2. First, include the [bmpdef](bmpdef.asm) file before your DATASEG section
+2. First, include the [graph](graph.asm) file before your DATASEG section
 ```sh
-    include "bmpdef.asm"                            ; Include Bitmap definitions
+    include "graph.asm"                            ; Include Bitmap definitions
 DATASEG
     ; Your variables
 ```
-3. Create a bitmap struct in your DATASEG and initialize it with the file path (may include directories)
+
+# Drawing a Bitmap
+
+1. Create a bitmap struct in your DATASEG and initialize it with the file path (may include directories)
 ```sh
 DATASEG
     ; This is the Bitmap that we are going to draw. Note how it is initialized
     ; with the file path (path should be up to BMP_PATH_LENGHTH bytes)
     Image          Bitmap    {ImagePath="img\\b1.bmp"}
 ```
-4. Inlcude the [bmp](bmp.asm) code within CODESEG
-```sh
-CODESEG
-    include "bmp.asm"                               ; Include Bitmap code
-
-start:
-    mov ax, @data
-    mov ds,ax
-
-    ; More code...    
-```
-5. Switch display to VGA mode (see gr_set_video_mode_vga macro in sample program)
-6. To draw the bitmap use:
+2. Switch display to VGA mode (see gr_set_video_mode_vga macro in sample program)
+3. To draw the bitmap use:
 ```sh
     ; Draw the image
     mov si, offset Image
     DisplayBmp si, 10,20
 ```
 where Image is the bitmap struct and the values are x and y coordinates on the screen
+
+
+# General graphics utilities
+
+## Switch video mode
+
+## Paint a Pixel
+
+## Check if coordinates are in the screen
+
+## Copy screen into buffer
+
+## Copy buffer to screen
+
+## Erase area on the screen
 
 
