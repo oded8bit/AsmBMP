@@ -41,18 +41,18 @@ CODESEG
 ; 	base - offset of the Bitmap struct
 ; 	offst - offset of the variable within the struct
 ;------------------------------------------------------------------------
-MACRO get_struc_ptr reg, base, offst
+MACRO bmp_get_struc_ptr reg, base, offst
 	mov reg, base
 	add reg, offst
 ENDM
 ;------------------------------------------------------------------------
 ; Move file pointer over the header and palette (fseek)
 ;------------------------------------------------------------------------
-MACRO fseek_loaded
+MACRO bmp_fseek
 	mov ah, 42h				; Move File Pointer Using Handle
 	mov al, 1				; current location plus offset (SEEK_CUR)
 
-	get_struc_ptr si, bmp, BMP_FILE_HANDLE_OFFSET
+	bmp_get_struc_ptr si, bmp, BMP_FILE_HANDLE_OFFSET
 	mov bx, [si]
 
 	mov cx, 0
@@ -95,39 +95,39 @@ PROC OpenShowBmp
 	
 	; Open the file
 	push bmp
-    call OpenBmpFile    
+    call BmpOpenFile
 	cmp ax,FALSE    
 	je @@ExitPROC
 
 	; Check if it has been loaded alrady
-	get_struc_ptr di, bmp, BMP_LOADED_OFFSET
+	bmp_get_struc_ptr di, bmp, BMP_LOADED_OFFSET
 	cmp [WORD di], TRUE
 	je @@alreadyLoaded
 
 	; Read bitmap header
     push bmp
-	call ReadBmpHeader
+	call BmpReadHeader
 
 	; Read bitmap palette
     push bmp
-	call ReadBmpPalette
+	call BmpReadPalette
 
 	jmp @@handlePalete
 
 @@alreadyLoaded:
 	; If the struct has already been loaded in the past, 
 	; move file pointer over header and palette	(fseek)
-	fseek_loaded
+	bmp_fseek
 
 @@handlePalete:	
 	; Copy palette to screen
     push bmp
-	call CopyBmpPalette	
+	call BmpCopyPalette	
 	; Display the bitmap
     push bmp
 	push xtopLeft
 	push ytopLeft
-	call ShowBMP 
+	call BmpShowScreen 
 	; Close file
     push bmp
 	call CloseBmpFile
@@ -148,7 +148,7 @@ ENDP OpenShowBmp
 ; Output: 
 ;     AX - TRUE on success, FALSE on error
 ;------------------------------------------------------------------------
-PROC OpenBmpFile			
+PROC BmpOpenFile			
     push bp
 	mov bp,sp
 	push dx si
@@ -164,7 +164,7 @@ PROC OpenBmpFile
     ;}
 
 	; Open file
-	get_struc_ptr si, bmp, BMP_IMAGE_PATH
+	bmp_get_struc_ptr si, bmp, BMP_IMAGE_PATH
     mov dx, si
 	mov ah, 3Dh
 	xor al, al
@@ -172,7 +172,7 @@ PROC OpenBmpFile
 	jc @@ErrorAtOpen    
 
 	; Save file handle (ax)
-	get_struc_ptr si, bmp, BMP_FILE_HANDLE_OFFSET
+	bmp_get_struc_ptr si, bmp, BMP_FILE_HANDLE_OFFSET
 	mov [si],ax
 
     mov ax,TRUE				; Success
@@ -184,7 +184,7 @@ PROC OpenBmpFile
     mov sp,bp
     pop bp
 	ret 2
-ENDP OpenBmpFile
+ENDP BmpOpenFile
 ;------------------------------------------------------------------------
 ; Close a file
 ; 
@@ -210,7 +210,7 @@ PROC CloseBmpFile
     ;}
 
 	mov ah,3Eh
-	get_struc_ptr si, bmp, BMP_FILE_HANDLE_OFFSET
+	bmp_get_struc_ptr si, bmp, BMP_FILE_HANDLE_OFFSET
 	mov bx,[si]
 	int 21h
 
@@ -224,11 +224,11 @@ ENDP CloseBmpFile
 ; 
 ; Input:
 ;     push  offset of BMP structure
-;     call ReadBmpHeader
+;     call BmpReadHeader
 ; 
 ; Output: None
 ;------------------------------------------------------------------------
-PROC ReadBmpHeader	
+PROC BmpReadHeader	
     push bp
 	mov bp,sp
 	pusha
@@ -244,10 +244,10 @@ PROC ReadBmpHeader
     ;}
 	
 	mov ah,3fh
-	get_struc_ptr si, bmp, BMP_FILE_HANDLE_OFFSET	
+	bmp_get_struc_ptr si, bmp, BMP_FILE_HANDLE_OFFSET	
 	mov bx, [si]
 	mov cx,BMP_HEADER_SIZE
-	get_struc_ptr si, bmp, BMP_HEADER_OFFSET	
+	bmp_get_struc_ptr si, bmp, BMP_HEADER_OFFSET	
 	mov dx,si
 	int 21h
 	
@@ -255,31 +255,31 @@ PROC ReadBmpHeader
 	; for use when drawing the bitmap
 	mov si,dx
 	mov ax, [word si+BMP_HEADER_WIDTH_OFFSET]	; width
-	get_struc_ptr di, bmp, BMP_WIDTH_OFFSET
+	bmp_get_struc_ptr di, bmp, BMP_WIDTH_OFFSET
 	mov [di],ax
 	mov ax, [word si+BMP_HEADER_HEIGHT_OFFSET]	; height
-	get_struc_ptr di, bmp, BMP_HEIGHT_OFFSET
+	bmp_get_struc_ptr di, bmp, BMP_HEIGHT_OFFSET
 	mov [di],ax
 	; Mark it loaded
-	get_struc_ptr di, bmp, BMP_LOADED_OFFSET	; Loaded
+	bmp_get_struc_ptr di, bmp, BMP_LOADED_OFFSET	; Loaded
 	mov [WORD di], TRUE
 
 	popa
     mov sp,bp
     pop bp
 	ret 2
-ENDP ReadBmpHeader
+ENDP BmpReadHeader
 ;------------------------------------------------------------------------
 ; Read BMP file color palette, 256 colors * 4 bytes (400h)
 ; 4 bytes for each color BGR + null)	
 ; 
 ; Input:
 ;     push  offset of BMP structure
-;     call ReadBmpPalette
+;     call BmpReadPalette
 ; 
 ; Output: None
 ;------------------------------------------------------------------------
-PROC ReadBmpPalette 					
+PROC BmpReadPalette 					
     push bp
 	mov bp,sp
 	push cx dx si
@@ -294,18 +294,18 @@ PROC ReadBmpPalette
          bmp    equ     [bp+4]
     ;}
 
-	get_struc_ptr si, bmp, BMP_FILE_HANDLE_OFFSET	
+	bmp_get_struc_ptr si, bmp, BMP_FILE_HANDLE_OFFSET	
 	mov bx, [si]
 	mov ah,3fh
 	mov cx,BMP_PALETTE_SIZE
-	get_struc_ptr dx, bmp, BMP_PALETTE_OFFSET
+	bmp_get_struc_ptr dx, bmp, BMP_PALETTE_OFFSET
 	int 21h
 	
 	pop si dx cx	
     mov sp,bp
     pop bp
 	ret 2
-ENDP ReadBmpPalette
+ENDP BmpReadPalette
 ;------------------------------------------------------------------------
 ; Will move out to screen memory the colors
 ; video ports are 3C8h for number of first color
@@ -313,11 +313,11 @@ ENDP ReadBmpPalette
 ; 
 ; Input:
 ;     push  offset of BMP structure
-;     call CopyBmpPalette
+;     call BmpCopyPalette
 ; 
 ; Output: None
 ;------------------------------------------------------------------------
-PROC CopyBmpPalette		
+PROC BmpCopyPalette		
     push bp
 	mov bp,sp								
 	push cx dx
@@ -332,7 +332,7 @@ PROC CopyBmpPalette
          bmp    equ     [bp+4]
     ;}
 
-	get_struc_ptr si, bmp, BMP_PALETTE_OFFSET
+	bmp_get_struc_ptr si, bmp, BMP_PALETTE_OFFSET
 	mov cx,256
 	mov dx,3C8h
 	mov al,0  ; black first							
@@ -356,7 +356,7 @@ PROC CopyBmpPalette
     mov sp,bp
     pop bp
 	ret 2
-ENDP CopyBmpPalette
+ENDP BmpCopyPalette
 ;------------------------------------------------------------------------
 ; BMP graphics are saved upside-down.
 ; Read the graphic line by line (BmpRowSize lines in VGA format),
@@ -366,11 +366,11 @@ ENDP CopyBmpPalette
 ;     push  offset of BMP structure
 ;     push  xtopLeft
 ;     push  ytopLeft
-;     call ShowBMP
+;     call BmpShowScreen
 ; 
 ; Output: None
 ;------------------------------------------------------------------------
-PROC ShowBMP 
+PROC BmpShowScreen 
     push bp
 	mov bp,sp		
 	sub sp, 4			; local vars					
@@ -399,15 +399,15 @@ PROC ShowBMP
 	mov es, ax
 	
 	; File handle
-	get_struc_ptr si, bmp, BMP_FILE_HANDLE_OFFSET	
+	bmp_get_struc_ptr si, bmp, BMP_FILE_HANDLE_OFFSET	
 	mov bx, [si]
 
 	; Height
-	get_struc_ptr si, bmp, BMP_HEIGHT_OFFSET
+	bmp_get_struc_ptr si, bmp, BMP_HEIGHT_OFFSET
 	mov cx,[si]
 	
 	; Width
-	get_struc_ptr si, bmp, BMP_WIDTH_OFFSET
+	bmp_get_struc_ptr si, bmp, BMP_WIDTH_OFFSET
 	mov ax,[si] 
 	mov imgWidth, ax
 
@@ -455,7 +455,7 @@ PROC ShowBMP
     mov sp,bp
     pop bp
 	ret 6
-ENDP ShowBMP 
+ENDP BmpShowScreen 
 ;------------------------------------------------------------------------
 ; A C# like macro to display a Bitmap file on the screen
 ; Input:
