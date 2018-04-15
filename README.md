@@ -16,7 +16,7 @@ IDEAL
 MODEL small
 STACK 256
 ```
-2. First, include the [bmpdef](bmpdef.asm) file inside DATASEG
+2. First, include the [bmpdef](bmpdef.asm) file before your DATASEG section
 ```sh
     include "bmpdef.asm"                            ; Include Bitmap definitions
 DATASEG
