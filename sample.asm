@@ -11,17 +11,17 @@ LOCALS @@
 .486
 IDEAL
 MODEL small
-STACK 256
+STACK 2048
 
-    include "bmpdef.asm"                            ; Include Bitmap definitions
+    include "graph.asm"
 DATASEG
     ; This is the Bitmap that we are going to draw. Note how it is initialized
-    ; with the file path (opath should be up to BMP_PATH_LENGHTH bytes)
+    ; with the file path (path should be up to BMP_PATH_LENGHTH bytes)
     Image          Bitmap       {ImagePath="b1.bmp"}
     ErrMsg         db           "Could not open file",0dh, 0ah,'$'
-CODESEG
-    include "bmp.asm"                               ; Include Bitmap code
+    _Buffer        db          80*80 dup(0)
 
+CODESEG
 ;------------------------------------------------------------------
 ; Checks for a keypress; Sets ZF if no keypress is available
 ; Otherwise returns it's scan code into AH and it's ASCII into al
@@ -49,28 +49,7 @@ PROC WaitForKeypress
     ret
 ENDP WaitForKeypress
 
-;----------------------------------------------------------
-; Sets the MS-DOS BIOS Video Mode
-;----------------------------------------------------------
-MACRO gr_set_video_mode mode
-  mov al, mode
-  mov ah, 0
-  int 10h
-ENDM
-;----------------------------------------------------------
-; Explicitly sets the MS-DOS BIOS Video Mode
-; to 80x25 Monochrome text 
-;----------------------------------------------------------
-MACRO gr_set_video_mode_txt 
-  gr_set_video_mode 03h
-ENDM
-;----------------------------------------------------------
-; Explicitly sets the MS-DOS BIOS Video Mode
-; to 320x200 256 color graphics
-;----------------------------------------------------------
-MACRO gr_set_video_mode_vga 
-  gr_set_video_mode 13h
-ENDM
+
 
 start:
     mov ax, @data
@@ -97,6 +76,8 @@ start:
     pop cx
     loop @@draw
 
+	; call TestSaveScreen
+
     jmp exit
 
 fileErr:
@@ -115,6 +96,36 @@ exit:
     mov ah, 4ch
     mov al, 0
     int 21h
+;------------------------------------------------------------------
+; capture screen into buffer, erase it and draw buffer back to 
+; screen in a different location
+;------------------------------------------------------------------	
+PROC TestSaveScreen	
+    push offset _Buffer
+    push 0
+    push 0
+    push 80
+    push 80
+    call CopyScreenArea
+
+
+    push 0
+    push 0
+    push 320
+    push 200
+    call EraseScreenArea
+
+	
+    push offset _Buffer
+    push 0
+    push 70
+    push 80
+    push 80
+    call CopyBufferToScreen
+
+	ret
+ENDP TestSaveScreen
+	
 END start
 
 CODSEG ends

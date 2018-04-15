@@ -11,23 +11,21 @@
 ;===================================================================================================
 LOCALS @@
 
-; Video address
-VIDEO_MEMORY_ADDRESS_VGA = 0A000h
 ; BMP related size constants
 BMP_MAX_WIDTH 			 = 320
 BMP_HEADER_SIZE			 = 54
 BMP_HEADER_WIDTH_OFFSET  = 12h
 BMP_HEADER_HEIGHT_OFFSET = 16h
 ; Struc ofsets
-BMP_FILE_HANDLE_OFFSET 	= 0
-BMP_HEADER_OFFSET 		= BMP_FILE_HANDLE_OFFSET + 2
-BMP_PALETTE_OFFSET 		= BMP_HEADER_OFFSET + BMP_HEADER_SIZE
-BMP_WIDTH_OFFSET 		= BMP_PALETTE_OFFSET + BMP_PALETTE_SIZE
-BMP_HEIGHT_OFFSET 		= BMP_WIDTH_OFFSET + 2
-BMP_IMAGE_PATH 			= BMP_HEIGHT_OFFSET + 2
-BMP_LOADED_OFFSET		= BMP_IMAGE_PATH + BMP_PATH_LENGTH + 1
+BMP_FILE_HANDLE_OFFSET 	 = 0
+BMP_HEADER_OFFSET 		 = BMP_FILE_HANDLE_OFFSET + 2
+BMP_PALETTE_OFFSET 		 = BMP_HEADER_OFFSET + BMP_HEADER_SIZE
+BMP_WIDTH_OFFSET 		 = BMP_PALETTE_OFFSET + BMP_PALETTE_SIZE
+BMP_HEIGHT_OFFSET 		 = BMP_WIDTH_OFFSET + 2
+BMP_IMAGE_PATH 			 = BMP_HEIGHT_OFFSET + 2
+BMP_LOADED_OFFSET		 = BMP_IMAGE_PATH + BMP_PATH_LENGTH + 1
 ; for seek
-BMP_SKIP_SIZE			= BMP_HEADER_SIZE + BMP_PALETTE_SIZE
+BMP_SKIP_SIZE			 = BMP_HEADER_SIZE + BMP_PALETTE_SIZE
 
 DATASEG
 	; Used to read a single line from the file
@@ -478,3 +476,47 @@ PROC BmpShowScreen
     pop bp
 	ret 6
 ENDP BmpShowScreen 
+;------------------------------------------------------------------------
+; Returns the width of the bitmap as indicated in the struct
+; 
+; Input:
+;     push  offset of BMP structure
+;     call GetBmpWidth
+; 
+; Output: AX = width
+;------------------------------------------------------------------------
+PROC GetBmpWidth
+    push bp
+	mov bp,sp		
+	push si
+	
+	bmp_get_struc_ptr si, bmp, BMP_WIDTH_OFFSET
+	mov ax, [si]
+
+	pop si
+    mov sp,bp
+    pop bp
+	ret 2
+ENDP GetBmpWidth
+;------------------------------------------------------------------------
+; Returns the height of the bitmap as indicated in the struct
+; 
+; Input:
+;     push  offset of BMP structure
+;     call GetBmpHeight
+; 
+; Output: AX = height
+;------------------------------------------------------------------------
+PROC GetBmpHeight
+    push bp
+	mov bp,sp		
+	push si
+
+	bmp_get_struc_ptr si, bmp, BMP_HEIGHT_OFFSET
+	mov ax, [si]
+
+	pop si
+    mov sp,bp
+    pop bp
+	ret 2
+ENDP GetBmpHeight
