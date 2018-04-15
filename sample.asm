@@ -17,9 +17,9 @@ STACK 2048
 DATASEG
     ; This is the Bitmap that we are going to draw. Note how it is initialized
     ; with the file path (path should be up to BMP_PATH_LENGHTH bytes)
-    Image          Bitmap       {ImagePath="b1.bmp"}
+    Image          Bitmap       {ImagePath="b2.bmp"}
     ErrMsg         db           "Could not open file",0dh, 0ah,'$'
-    _Buffer        db          80*80 dup(0)
+    _Buffer        db          151*152 dup(0)
 
 CODESEG
 ;------------------------------------------------------------------
@@ -58,25 +58,9 @@ start:
     ; Switch to VGA 256 colors 320x200 pixels
     gr_set_video_mode_vga
 
-    ; Draw the bitmap 10 times shifted on the screen
-    mov cx, 10
-    mov bx, 0       ; x
-    mov dx, 0       ; y
-@@draw:    
-    push cx
-    ; Draw the image
-    mov si, offset Image
-    DisplayBmp si, bx, dx
-
-    cmp ax, FALSE   ; Error openning file?
-    je fileErr
-
-    add bx,20       ; x+=20
-    add dx,10       ; y+=10
-    pop cx
-    loop @@draw
-
-	; call TestSaveScreen
+    call TestDrawAndMove
+    ;call TestDrawMultiple
+	;call TestSaveScreen
 
     jmp exit
 
@@ -96,6 +80,78 @@ exit:
     mov ah, 4ch
     mov al, 0
     int 21h
+
+;------------------------------------------------------------------
+;
+;------------------------------------------------------------------
+PROC TestDrawAndMove
+
+    push 2
+    push 0
+    push 0
+    push 320
+    push 200
+    call FillScreen
+
+    mov bx,0        ; x
+    mov cx,1
+
+@@move:
+    push offset _Buffer
+    push 0
+    push 0
+    push 152
+    push 151
+    call CopyScreenArea
+
+    push 1
+    push 0
+    push 0
+    push 320
+    push 200
+    call FillScreen
+
+    ; Draw the image
+    mov si, offset Image
+    DisplayBmp si,0, 0
+
+    push offset _Buffer
+    push bx
+    push 0
+    push 152
+    push 151
+    call CopyBufferToScreen
+
+    ;add bx,50
+
+    loop @@move
+
+    ret
+ENDP TestDrawAndMove
+;------------------------------------------------------------------
+; Loop that draws the image multiple times
+;------------------------------------------------------------------	
+PROC TestDrawMultiple
+    ; Draw the bitmap 10 times shifted on the screen
+    mov cx, 2
+    mov bx, 0       ; x
+    mov dx, 0       ; y
+@@draw:    
+    push cx
+    ; Draw the image
+    mov si, offset Image
+    DisplayBmp si, bx, dx
+
+    cmp ax, FALSE   ; Error openning file?
+    je fileErr
+
+    add bx,20       ; x+=20
+    add dx,10       ; y+=10
+    pop cx
+    loop @@draw
+
+    ret
+ENDP TestDrawMultiple    
 ;------------------------------------------------------------------
 ; capture screen into buffer, erase it and draw buffer back to 
 ; screen in a different location
@@ -109,11 +165,11 @@ PROC TestSaveScreen
     call CopyScreenArea
 
 
-    push 0
-    push 0
-    push 320
-    push 200
-    call EraseScreenArea
+    ;push 0
+    ;push 0
+    ;push 320
+    ;push 200
+    ;call EraseScreenArea
 
 	
     push offset _Buffer

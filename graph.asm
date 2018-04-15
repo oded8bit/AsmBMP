@@ -261,7 +261,7 @@ PROC CopyBufferToScreen
 	ret 10
 ENDP CopyBufferToScreen
 ;------------------------------------------------------------------------
-; Copies an area on the screen into a buffer
+; Draws black on the screen
 ; 
 ; Input:
 ;     push xTopLeft
@@ -275,6 +275,51 @@ ENDP CopyBufferToScreen
 PROC EraseScreenArea
     push bp
 	mov bp,sp
+    
+    ; now the stack is
+	; bp+0 => old base pointer
+	; bp+2 => return address
+	; bp+4 => theHeight
+	; bp+6 => theWidth
+    ; bp+8 => ytopLeft
+    ; bp+10 => xtopLeft
+    ; bp+12 => color
+	; saved registers  
+
+    ;{
+        theHeight   equ         [word bp+4]
+        theWidth    equ         [word bp+6]
+        ytopLeft    equ         [word bp+8]
+        xtopLeft    equ         [word bp+10]
+        color       equ         [word bp+12]
+    ;}    
+
+    push VGA_COLOR_BLACK
+    push yTopLeft
+    push theWidth
+    push theHeight
+    call FillScreen
+
+    mov sp,bp
+    pop bp
+	ret 10
+ENDP EraseScreenArea
+;------------------------------------------------------------------------
+; Draws a color on the screen
+; 
+; Input:
+;     push color
+;     push xTopLeft
+;     push yTopLeft
+;     push theWidth
+;     push theHeight
+;     call FillScreen
+; 
+; Output: None
+;------------------------------------------------------------------------
+PROC FillScreen
+    push bp
+	mov bp,sp
 	sub sp,2
     pusha
     push es ds
@@ -286,6 +331,7 @@ PROC EraseScreenArea
 	; bp+6 => theWidth
     ; bp+8 => ytopLeft
     ; bp+10 => xtopLeft
+    ; bp+12 => color
 	; saved registers  
 
     ;{
@@ -293,6 +339,7 @@ PROC EraseScreenArea
         theWidth    equ         [word bp+6]
         ytopLeft    equ         [word bp+8]
         xtopLeft    equ         [word bp+10]
+        color       equ         [word bp+12]
 		y           equ			[word bp-2]
     ;}    
 
@@ -314,7 +361,7 @@ PROC EraseScreenArea
     add di, xtopLeft
 
     cld
-    mov ax, VGA_COLOR_BLACK
+    mov ax, color
     mov cx, theWidth
     rep stosb           ; Store AL at address ES:DI
 
@@ -326,7 +373,7 @@ PROC EraseScreenArea
     popa
     mov sp,bp
     pop bp
-	ret 8
-ENDP EraseScreenArea
+	ret 10
+ENDP FillScreen
 
 include "bmp.asm"  
