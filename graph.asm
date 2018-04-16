@@ -83,6 +83,16 @@ _out:
   pop es di dx bx ax
 ENDM
 ;----------------------------------------------------------
+; Sets reg to the video address for coordinates x,y
+;----------------------------------------------------------
+MACRO get_video_address reg, x, y
+  mov ax, y
+  mov bx, VGA_SCREEN_WIDTH
+  mul bx
+  mov reg, ax
+  add reg, x    
+ENDM
+;----------------------------------------------------------
 ; Checks if the coords are within the VGA screen size
 ; Output:
 ;   if valid => ax = 1   else   ax = 0
@@ -375,5 +385,115 @@ PROC FillScreen
     pop bp
 	ret 10
 ENDP FillScreen
+;------------------------------------------------------------------------
+; Draws a color on the screen
+; 
+; Input:
+;     push color
+;     push xTopLeft
+;     push yTopLeft
+;     push theLength
+;     call DrawHorizonalLine
+; 
+; Output: None
+;------------------------------------------------------------------------
+PROC DrawHorizonalLine
+    push bp
+	mov bp,sp
+    pusha
+    push es 
 
+    ; now the stack is
+	; bp+0 => old base pointer
+	; bp+2 => return address
+	; bp+4 => theLength
+    ; bp+6 => ytopLeft
+    ; bp+8 => xtopLeft
+    ; bp+10 => color
+	; saved registers  
+
+    ;{
+        theLength   equ         [word bp+4]
+        ytopLeft    equ         [word bp+6]
+        xtopLeft    equ         [word bp+8]
+        color       equ         [word bp+10]
+    ;}    
+
+    get_video_address di, xTopLeft, yTopLeft
+
+    push VIDEO_MEMORY_ADDRESS_VGA
+    pop es
+
+    mov ax, color
+    
+    cld
+    mov cx, theLength
+    rep stosb           ; Store AL at address ES:DI
+
+    pop es
+    popa
+    mov sp,bp
+    pop bp
+	ret 8
+ENDP DrawHorizonalLine
+;------------------------------------------------------------------------
+; Draws a color on the screen
+; 
+; Input:
+;     push color
+;     push xTopLeft
+;     push yTopLeft
+;     push theLength
+;     call DrawVerticalLine
+; 
+; Output: None
+;------------------------------------------------------------------------
+PROC DrawVerticalLine
+    push bp
+	mov bp,sp
+    sub sp,2
+    pusha
+    push es 
+
+    ; now the stack is
+    ; bp-2 => y
+	; bp+0 => old base pointer
+	; bp+2 => return address
+	; bp+4 => theLength
+    ; bp+6 => ytopLeft
+    ; bp+8 => xtopLeft
+    ; bp+10 => color
+	; saved registers  
+
+    ;{
+        theLength   equ         [word bp+4]
+        ytopLeft    equ         [word bp+6]
+        xtopLeft    equ         [word bp+8]
+        color       equ         [byte bp+10]
+        y           equ         [word bp-2]
+    ;}    
+
+    push VIDEO_MEMORY_ADDRESS_VGA
+    pop es
+    
+    mov cx, theLength
+    mov si, xTopLeft
+    mov ax, ytopLeft
+    mov y, ax
+@@vert:
+    gr_set_pixel si, y, color
+    inc y
+
+    loop @@Vert    
+
+
+    pop es
+    popa
+    mov sp,bp
+    pop bp
+	ret 8
+ENDP DrawVerticalLine
+
+
+; Inlcludes
 include "bmp.asm"  
