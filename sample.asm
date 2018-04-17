@@ -1,9 +1,5 @@
 ;===================================================================================================
-; Written By: Oded Cnaan (oded.8bit@gmail.com)
-; Site: http://odedc.net 
-; Licence: GPLv3 (see LICENSE file)
-; Date: 13-04-2018
-;
+; Written By: Tomer Cnaan
 ; Description: A sample program showing how to use the Bitmap code
 ;===================================================================================================
 LOCALS @@
@@ -57,4 +53,4 @@ exit:
 	
 END start
 
-CODSEG ends
+CODSEG ENDS

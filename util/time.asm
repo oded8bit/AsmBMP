@@ -1,18 +1,11 @@
 ;===================================================================================================
-; Written By: Oded Cnaan (oded.8bit@gmail.com)
-; Site: http://odedc.net 
-; Licence: None
-; Package: XXX
-; Date: 17-04-2018
-; File: time.asm
+; Written By: Tomer Cnaan 
 ;
-; Description: 
+; Description: Timer related utilities
 ;===================================================================================================
 LOCALS @@
 
-
 CODESEG
-
 ;------------------------------------------------------------------------
 ; Creates a short delay 
 ;

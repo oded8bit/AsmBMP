@@ -1,11 +1,7 @@
 ;===================================================================================================
-; Written By: Oded Cnaan (oded.8bit@gmail.com)
-; Site: http://odedc.net 
-; Licence: GPLv3 (see LICENSE file)
-; Date: 13-04-2018
+; Written By: Tomer Cnaan
 ;
-; Description: 
-;
+; Description: Graphic related utilities
 ;===================================================================================================
 LOCALS @@
 
@@ -33,8 +29,6 @@ DATASEG
 	ENDS Bitmap
 	
 CODESEG
-
-
 ;------------------------------------------------------------------------
 ; A C# like macro to copy a screen area into a buffer
 ; Assumes the coordinates are within the screen limits
@@ -613,4 +607,4 @@ ENDP DrawVerticalLine
 
 
 ; Inlcludes
-include "graph/bmp.asm"  
+include "graph/bmp.asm"

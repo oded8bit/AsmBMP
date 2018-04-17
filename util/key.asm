@@ -1,17 +1,11 @@
 ;===================================================================================================
-; Written By: Oded Cnaan (oded.8bit@gmail.com)
-; Site: http://odedc.net 
-; Licence: None
-; Package: XXX
-; Date: 17-04-2018
-; File: key.asm
+; Written By: Tomer Cnaan 
 ;
-; Description: 
+; Description: Keyboard related utilities
 ;===================================================================================================
 LOCALS @@
 
 CODESEG
-
 ;------------------------------------------------------------------
 ; Checks for a keypress; Sets ZF if no keypress is available
 ; Otherwise returns it's scan code into AH and it's ASCII into al

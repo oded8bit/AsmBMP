@@ -1,13 +1,10 @@
 ;===================================================================================================
-; Written By: Oded Cnaan (oded.8bit@gmail.com)
-; Site: http://odedc.net 
-; Licence: GPLv3 (see LICENSE file)
-; Date: 13-04-2018
+; Written By: Tomer Cnaan
 ;
 ; Description: Draws a BMP on the screen
 ; You need to include "defs.asm" within your DATASEG and this file within you CODESEG
 ;
-; credit http://t67.tik-tak.co.il/uploadfiles/tzvia_b/users/357724/Pic48X78.txt
+; Modified version of http://t67.tik-tak.co.il/uploadfiles/tzvia_b/users/357724/Pic48X78.txt
 ;===================================================================================================
 LOCALS @@
 
@@ -30,6 +27,7 @@ BMP_SKIP_SIZE			 = BMP_HEADER_SIZE + BMP_PALETTE_SIZE
 DATASEG
 	; Used to read a single line from the file
     _bmpSingleLine 	db BMP_MAX_WIDTH dup (0)  
+	
 CODESEG
 ;------------------------------------------------------------------------
 ; A C# like macro to display a Bitmap file on the screen
@@ -47,7 +45,30 @@ MACRO Display_BMP bmp_offset, xtopLeft, yTopLeft
 	push ytopLeft
 	call BmpDisplay
 ENDM
-
+;------------------------------------------------------------------------
+; A C# like macro to get the Bitmap height
+; 
+; Input:
+;	  bmp_offset - offset of the Bitmap struct
+; Output: 	
+;     AX - Bitmap height
+;------------------------------------------------------------------------
+MACRO Get_Bmp_Height bmp_offset
+	push bmp
+	call GetBmpHeight
+ENDM
+;------------------------------------------------------------------------
+; A C# like macro to get the Bitmap width
+; 
+; Input:
+;	  bmp_offset - offset of the Bitmap struct
+; Output: 	
+;     AX - Bitmap width
+;------------------------------------------------------------------------
+MACRO Get_Bmp_Width bmp_offset
+	push bmp
+	call GetBmpWidth
+ENDM
 ;=+=+=+=+=+=+=+=+=+=+=+=+=+= IMPLEMENTATION +=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 
 ;------------------------------------------------------------------------

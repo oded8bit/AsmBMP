@@ -1,9 +1,7 @@
 ;===================================================================================================
 ; Written By: Tomer Cnaan 
-; Date: 17-04-2018
-; File: util.asm
 ;
-; Description: Collection of utilities
+; Description: Collection of utilities and definitions
 ;===================================================================================================
 LOCALS @@
 
@@ -11,7 +9,6 @@ LOCALS @@
 TRUE 			 		 = 1
 FALSE 			 		 = 0
 NULL 			 		 = 0
-
 
 ; ---------- INCLUDE --------
 include "util/time.asm"
