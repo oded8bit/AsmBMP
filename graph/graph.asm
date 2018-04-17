@@ -9,10 +9,6 @@
 ;===================================================================================================
 LOCALS @@
 
-; Global definitions
-TRUE 			 		 = 1
-FALSE 			 		 = 0
-NULL 			 		 = 0
 ; Video constants (VGA)
 VIDEO_MEMORY_ADDRESS_VGA = 0A000h
 VGA_SCREEN_WIDTH         = 320
@@ -37,6 +33,127 @@ DATASEG
 	ENDS Bitmap
 	
 CODESEG
+
+
+;------------------------------------------------------------------------
+; A C# like macro to copy a screen area into a buffer
+; Assumes the coordinates are within the screen limits
+;
+; Input:
+;	  buffer - offset of the buffer
+;	  xtopLeft - x coordinate on screen
+;	  yTopLeft - y coordinate on screen
+;     theWidth - the area width 
+;     theHeight - the area height
+; Output: None
+;------------------------------------------------------------------------
+MACRO Copy_Screen_Area buffer, xTopLeft, yTopLeft, theWidth, theHeight
+    push buffer
+    push xTopLeft
+    push yTopLeft
+    push theWidth
+    push theHeight
+    call CopyScreenArea 
+ENDM
+;------------------------------------------------------------------------
+; A C# like macro to copy buffer into the screen memory
+; Assumes the coordinates are within the screen limits
+;
+; Input:
+;	  buffer - offset of the buffer
+;	  xtopLeft - x coordinate on screen
+;	  yTopLeft - y coordinate on screen
+;     theWidth - the area width 
+;     theHeight - the area height
+; Output: None
+;------------------------------------------------------------------------
+MACRO Copy_Buffer_To_Screen buffer, xTopLeft, yTopLeft, theWidth, theHeight
+    push buffer
+    push xTopLeft
+    push yTopLeft
+    push theWidth
+    push theHeight
+    call CopyBufferToScreen 
+ENDM
+;------------------------------------------------------------------------
+; A C# like macro to draw color black (0) on the screen
+; - ssumes the coordinates are within the screen limits
+; - if the default palette was changed, use Fill_Screen instead
+;
+; Input:
+;	  xtopLeft - x coordinate on screen
+;	  yTopLeft - y coordinate on screen
+;     theWidth - the area width 
+;     theHeight - the area height
+; Output: None
+;------------------------------------------------------------------------
+MACRO Erase_Screen_Area xTopLeft, yTopLeft, theWidth, theHeight
+    push xTopLeft
+    push yTopLeft
+    push theWidth
+    push theHeight
+    call EraseScreenArea 
+ENDM
+;------------------------------------------------------------------------
+; A C# like macro to fill the screen with a color
+; - ssumes the coordinates are within the screen limits
+;
+; Input:
+;     color - the color
+;	  xtopLeft - x coordinate on screen
+;	  yTopLeft - y coordinate on screen
+;     theWidth - the area width 
+;     theHeight - the area height
+; Output: None
+;------------------------------------------------------------------------
+MACRO Fill_Screen color, xTopLeft, yTopLeft, theWidth, theHeight
+    push color
+    push xTopLeft
+    push yTopLeft
+    push theWidth
+    push theHeight
+    call FillScreen 
+ENDM
+;------------------------------------------------------------------------
+; A C# like macro to draw a horizontal line
+; - ssumes the coordinates are within the screen limits
+;
+; Input:
+;     color - the color
+;	  xtopLeft - x coordinate on screen
+;	  yTopLeft - y coordinate on screen
+;     theWidth - the area width 
+;     theHeight - the area height
+; Output: None
+;------------------------------------------------------------------------
+MACRO Draw_Horiz_Line color, xTopLeft, yTopLeft, theLength
+    push color
+    push xTopLeft
+    push yTopLeft
+    push theLength
+    call DrawHorizonalLine
+ENDM
+;------------------------------------------------------------------------
+; A C# like macro to draw a vertical line
+; - ssumes the coordinates are within the screen limits
+;
+; Input:
+;     color - the color
+;	  xtopLeft - x coordinate on screen
+;	  yTopLeft - y coordinate on screen
+;     theWidth - the area width 
+;     theHeight - the area height
+; Output: None
+;------------------------------------------------------------------------
+MACRO Draw_Vert_Line color, xTopLeft, yTopLeft, theLength
+    push color
+    push xTopLeft
+    push yTopLeft
+    push theLength
+    call DrawVerticalLine
+ENDM
+;=+=+=+=+=+=+=+=+=+=+=+=+=+= IMPLEMENTATION +=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+
 ;----------------------------------------------------------
 ; Sets the MS-DOS BIOS Video Mode
 ;----------------------------------------------------------
@@ -496,4 +613,4 @@ ENDP DrawVerticalLine
 
 
 ; Inlcludes
-include "bmp.asm"  
+include "graph/bmp.asm"  

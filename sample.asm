@@ -13,44 +13,15 @@ IDEAL
 MODEL small
 STACK 2048
 
-    include "graph.asm"
+    include "lib.inc"    
 DATASEG
     ; This is the Bitmap that we are going to draw. Note how it is initialized
     ; with the file path (path should be up to BMP_PATH_LENGHTH bytes)
-    Image          Bitmap       {ImagePath="b2.bmp"}
+    Image          Bitmap       {ImagePath="assets\\b2.bmp"}
     ErrMsg         db           "Could not open file",0dh, 0ah,'$'
     _Buffer        db          150*150 dup(0)
 
 CODESEG
-include 'test.asm'
-;------------------------------------------------------------------
-; Checks for a keypress; Sets ZF if no keypress is available
-; Otherwise returns it's scan code into AH and it's ASCII into al
-; Removes the charecter from the Type Ahead Buffer 
-; return: AX  = _Key
-;------------------------------------------------------------------
-PROC WaitForKeypress
-    push bp
-	mov bp,sp
-
-@@check_keypress:
-    mov ah, 1     ; Checks if there is a character in the type ahead buffer
-    int 16h       ; MS-DOS BIOS Keyboard Services Interrupt
-    jz @@check_keypress_empty
-    mov ah, 0
-    int 16h
-    jmp @@exit
-@@check_keypress_empty:
-    cmp ax, ax    ; Explicitly sets the ZF
-    jz   @@check_keypress
-
-@@exit:
-    mov sp,bp
-    pop bp
-    ret
-ENDP WaitForKeypress
-
-
 
 start:
     mov ax, @data
@@ -59,11 +30,11 @@ start:
     ; Switch to VGA 256 colors 320x200 pixels
     gr_set_video_mode_vga
 
-    call TestLines
-    ;call TestDrawAndMove
-    ;call TestDrawMultiple
-	;call TestSaveScreen
-    ;call TestLines
+    ; Draw the image
+    mov si, offset Image
+    Display_BMP si,0, 0
+    cmp ax, FALSE
+    je fileErr
 
     jmp exit
 
