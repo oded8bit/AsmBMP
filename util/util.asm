@@ -14,4 +14,5 @@ NULL 			 		 = 0
 include "util/time.asm"
 include "util/sound.asm"
 include "util/key.asm"
+include "util/print.asm"
 
