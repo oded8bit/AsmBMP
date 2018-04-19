@@ -15,6 +15,7 @@ LVL_FILE_NUM_LINES      = SCRN_NUM_BOXES_HEIGHT
 LVL_FILE_LINE_LEN       = SCRN_NUM_BOXES_WIDTH + 2
 LVL_FILE_SIZE           = LVL_FILE_LINE_LEN*LVL_FILE_NUM_LINES
 
+BOX                     = 2
 WALL                    = 1
 FLOOR                   = 0
 INVALID                 = -1
