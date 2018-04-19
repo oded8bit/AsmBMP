@@ -23,6 +23,9 @@ start:
     mov ax, @data
     mov ds,ax
 
+    push offset fileLevel1
+    call ReadLevelFile
+
     ; Switch to VGA 256 colors 320x200 pixels
     gr_set_video_mode_vga
 
