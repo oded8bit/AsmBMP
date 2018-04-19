@@ -15,9 +15,10 @@ LVL_FILE_NUM_LINES      = SCRN_NUM_BOXES_HEIGHT
 LVL_FILE_LINE_LEN       = SCRN_NUM_BOXES_WIDTH + 2
 LVL_FILE_SIZE           = LVL_FILE_LINE_LEN*LVL_FILE_NUM_LINES
 
-BOX                     = 2
-WALL                    = 1
-FLOOR                   = 0
+PLAYER                  = 3     ; '@'
+BOX                     = 2     ; '+'
+WALL                    = 1     ; '*'
+FLOOR                   = 0     ; ' '
 INVALID                 = -1
 
 DIR_UP                  = 1
@@ -133,15 +134,28 @@ PROC ParseLevelData
 @@parse:
     mov ax,[di]
     cmp al, '*'
-    jne @@space
+    jne @@box
 
     ; Found an *
     mov [WORD si], WALL
     jmp @@cont
 
-@@space:
-    mov [WORD si], FLOOR
+@@box:
+    cmp al,'+'
+    jne @@player
 
+    mov [WORD si], BOX
+    jmp @@cont
+
+@@player:
+    cmp al,'@'
+    jne @@space
+
+    mov [WORD si], PLAYER
+    jmp @@cont
+
+@@space:
+    mov [WORD si], SPACE
 @@cont:
     inc si
     inc di
@@ -353,7 +367,7 @@ PROC CanMoveToBox
 
     mov ax, FALSE       
 
-    cmp ax, WALL
+    cmp ax, FLOOR
     jne @@end
 
     mov ax, TRUE
