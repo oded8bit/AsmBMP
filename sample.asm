@@ -25,7 +25,17 @@ start:
 
     push offset fileLevel1
     call ReadLevelFile
+    cmp ax, FALSE
+    je exit
 
+    push DIR_LEFT
+    push 1
+    push 2
+    call GetBoxValueInDirection
+
+    call PrintDecimal
+
+    jmp exit
     ; Switch to VGA 256 colors 320x200 pixels
     gr_set_video_mode_vga
 

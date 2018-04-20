@@ -11,8 +11,8 @@ SCRN_NUM_BOXES_WIDTH  = 320/SCRN_BOX_WIDTH
 SCRN_NUM_BOXES_HEIGHT = 200/SCRN_BOX_HEIGHT
 SCRN_ARRAY_SIZE     = SCRN_BOX_WIDTH * SCRN_BOX_HEIGHT
 
-LVL_FILE_NUM_LINES      = SCRN_NUM_BOXES_HEIGHT
-LVL_FILE_LINE_LEN       = SCRN_NUM_BOXES_WIDTH + 2
+LVL_FILE_NUM_LINES      = SCRN_NUM_BOXES_HEIGHT                 ; numberof lines in a lvl file
+LVL_FILE_LINE_LEN       = SCRN_NUM_BOXES_WIDTH + 2              ; number of chars in a lvl line
 LVL_FILE_SIZE           = LVL_FILE_LINE_LEN*LVL_FILE_NUM_LINES
 
 PLAYER                  = 3     ; '@'
@@ -62,6 +62,7 @@ PROC ReadLevelFile
     mov si, offset fileLevel1
     m_fsize si ds
 
+    mov bx,LVL_FILE_SIZE
     cmp ax, LVL_FILE_SIZE
     jne @@badSize
 
@@ -155,9 +156,9 @@ PROC ParseLevelData
     jmp @@cont
 
 @@space:
-    mov [WORD si], SPACE
+    mov [WORD si], FLOOR
 @@cont:
-    inc si
+    add si,2
     inc di
     loop @@parse
 
@@ -226,17 +227,18 @@ PROC GetBoxValue
     ret 4
 ENDP GetBoxValue
 ;------------------------------------------------------------------------
-; CanMoveTo: 
+; Gets the value in the box in the specified direction relative to 
+; current player coordinates
 ; 
 ; Input:
 ;     push direction    
 ;     push  x - current coord
 ;     push  y - current coord
-;     call CanMoveTo
+;     call GetBoxValueInDirection_Coord
 ; 
 ; Output: None
 ;------------------------------------------------------------------------
-PROC CanMoveTo
+PROC GetBoxValueInDirection_Coord
     push bp
     mov bp,sp
     sub sp,4
@@ -261,8 +263,6 @@ PROC CanMoveTo
     direction       equ        [word bp+8]
     ;}
 
-    mov si, offset wallAroundMe
-
     mov ax, theX
     mov bx, SCRN_NUM_BOXES_WIDTH
     div bx
@@ -277,22 +277,23 @@ PROC CanMoveTo
     push direction
     push row
     push col
-    call CanMoveToBox
+    call GetBoxValueInDirection
 
 @@end:
     pop dx si bx
     mov sp,bp
     pop bp
     ret 6
-ENDP CanMoveTo
+ENDP GetBoxValueInDirection_Coord
 ;------------------------------------------------------------------------
-; CanMoveToBox: 
+; Gets the value in the box in the specified direction relative to 
+; current row,col
 ; 
 ; Input:
 ;     push  direction
 ;     push  current row
 ;     push  current col
-;     call CanMoveToBox
+;     call GetBoxValueInDirection
 ; 
 ; Output: 
 ;     AX - TRUE or FALSE
@@ -300,7 +301,7 @@ ENDP CanMoveTo
 ; Affected Registers: 
 ; Limitations: 
 ;------------------------------------------------------------------------
-PROC CanMoveToBox
+PROC GetBoxValueInDirection
     push bp
     mov bp,sp
     push bx
@@ -352,34 +353,19 @@ PROC CanMoveToBox
         jmp @@check
 
 @@check:
-    ; check that row,col are valid
-    mov ax, row
-    cmp ax, SCRN_NUM_BOXES_HEIGHT
-    jae @@default
-
-    mov ax, column
-    cmp ax, SCRN_NUM_BOXES_WIDTH
-    jae @@default
-
     push row
     push col
     call GetBoxValue    ; will set AX
 
-    mov ax, FALSE       
-
-    cmp ax, FLOOR
-    jne @@end
-
-    mov ax, TRUE
-
     jmp @@end
+
 @@default:
     ; default {
-        mov ax, FALSE
+    mov ax, INVALID
     ;}
 @@end:
     pop bx
     mov sp,bp
     pop bp
     ret 6
-ENDP CanMoveToBox
+ENDP GetBoxValueInDirection
