@@ -49,21 +49,35 @@ ENDP PrintSpace
 ;----------------------------------------------------------
 ; Prints a string to the screen
 ; Input: DS:DX pointer to string ending in "$"
+; push offset
+; call PrintSre
 ;----------------------------------------------------------
 PROC PrintStr 
+    push bp
+    mov bp,sp
+
+    mov dx, [word bp+4]
     push ax
     mov ah, 09h
     int 21h
+
     pop ax
-    ret
+    mov sp,bp
+    pop bp
+    ret 2
 ENDP PrintStr
 ;----------------------------------------------------------
 ; Prints a NULL terminated string to the screen
 ; Input: DS:DX pointer to string ending in NULL
+; push offset
+; call PrintCStr
 ;----------------------------------------------------------
 PROC PrintCStr
+    push bp
+    mov bp,sp
     push si bx ax
-    push dx
+
+    push [word bp+4]
     call Strlen
     mov bx, ax                  ; store length
     mov si, dx
@@ -73,8 +87,11 @@ PROC PrintCStr
     int 21h
 
     mov [BYTE si], Null
+
     pop ax bx si
-    ret
+    mov sp,bp
+    pop bp
+    ret 2
 ENDP PrintCStr
 ;----------------------------------------------------------
 ; Prints a string to the screen + New line

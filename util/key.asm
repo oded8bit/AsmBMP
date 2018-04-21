@@ -5,6 +5,15 @@
 ;===================================================================================================
 LOCALS @@
 
+KEY_S = 1F73h
+KEY_E = 1265h
+KEY_R = 1372h
+
+KEY_DOWN = 5000h
+KEY_UP   = 4800h
+KEY_RIGHT = 4D00h
+KEY_LEFT = 4B00h
+
 CODESEG
 ;------------------------------------------------------------------
 ; Checks for a keypress; Sets ZF if no keypress is available

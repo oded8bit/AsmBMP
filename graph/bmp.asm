@@ -26,10 +26,24 @@ BMP_SKIP_SIZE			 = BMP_HEADER_SIZE + BMP_PALETTE_SIZE
 
 DATASEG
 	; Used to read a single line from the file
-    _bmpSingleLine 	db BMP_MAX_WIDTH dup (0)  
+    _bmpSingleLine 			db BMP_MAX_WIDTH dup (0)  
 	; Draw palette only ones
-	_palSet			db FALSE	
+	_palSet					db FALSE	
+	_shouldDrawPalette		db TRUE
 CODESEG
+;------------------------------------------------------------------------
+; A C# like macro to display a Bitmap file on the screen
+; 
+; Input:
+;	  bmp_offset - offset of the Bitmap struct
+;	  xtopLeft - x coordinate on screen
+;	  yTopLeft - y coordinate on screen
+; Output: 	
+;     AX - TRUE on success, FALSE on error
+;------------------------------------------------------------------------
+MACRO set_draw_palette state
+	mov [_shouldDrawPalette], state
+ENDM
 ;------------------------------------------------------------------------
 ; A C# like macro to display a Bitmap file on the screen
 ; 
@@ -147,10 +161,7 @@ PROC BmpDisplay
     push bmp
 	call BmpReadHeader
 
-	; Read bitmap palette
-	cmp [_palSet], TRUE
-	je @@nopal
-	mov [_palSet],TRUE
+	; Read bitmap palette	
     push bmp
 	call BmpReadPalette
 
@@ -163,9 +174,16 @@ PROC BmpDisplay
 
 @@handlePalete:	
 	; Copy palette to screen
+
+	; if (_shouldDrawPalette) then draw palette
+	cmp [_shouldDrawPalette], TRUE
+	je @@doPal
+
+	; else, check if it has already been drawn
 	cmp [_palSet], TRUE
 	je @@nopal
 	mov [_palSet],TRUE
+@@doPal:	
     push bmp
 	call BmpCopyPalette	
 @@nopal:	
