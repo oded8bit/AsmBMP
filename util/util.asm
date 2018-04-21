@@ -9,6 +9,9 @@ LOCALS @@
 TRUE 			 		 = 1
 FALSE 			 		 = 0
 NULL 			 		 = 0
+; VGA
+VGA_SCREEN_WIDTH         = 320
+VGA_SCREEN_HEIGHT        = 200
 
 ; ---------- INCLUDE --------
 include "util/file.asm"

@@ -5,16 +5,17 @@
 ;===================================================================================================
 LOCALS @@
 
-SCRN_BOX_WIDTH      = 10
-SCRN_BOX_HEIGHT     = 10
-SCRN_NUM_BOXES_WIDTH  = 320/SCRN_BOX_WIDTH
-SCRN_NUM_BOXES_HEIGHT = 200/SCRN_BOX_HEIGHT
-SCRN_ARRAY_SIZE     = SCRN_BOX_WIDTH * SCRN_BOX_HEIGHT
+SCRN_BOX_WIDTH          = 16
+SCRN_BOX_HEIGHT         = 20
+SCRN_NUM_BOXES_WIDTH    = VGA_SCREEN_WIDTH/SCRN_BOX_WIDTH
+SCRN_NUM_BOXES_HEIGHT   = VGA_SCREEN_HEIGHT/SCRN_BOX_HEIGHT
+SCRN_ARRAY_SIZE         = SCRN_NUM_BOXES_WIDTH * SCRN_NUM_BOXES_HEIGHT
 
 LVL_FILE_NUM_LINES      = SCRN_NUM_BOXES_HEIGHT                 ; numberof lines in a lvl file
 LVL_FILE_LINE_LEN       = SCRN_NUM_BOXES_WIDTH + 2              ; number of chars in a lvl line
 LVL_FILE_SIZE           = LVL_FILE_LINE_LEN*LVL_FILE_NUM_LINES
 
+TARGET                  = 4     ; '#'
 PLAYER                  = 3     ; '@'
 BOX                     = 2     ; '+'
 WALL                    = 1     ; '*'
@@ -31,7 +32,7 @@ DATASEG
     fileLevel1      db          "screen\\lvl1.dat",0
 
     levelLine       db          LVL_FILE_LINE_LEN dup(0)
-    levelScreen     dw          SCRN_ARRAY_SIZE dup(0)
+    levelScreen     db          SCRN_ARRAY_SIZE dup(0)
 
 CODESEG
 ;------------------------------------------------------------------------
@@ -62,7 +63,6 @@ PROC ReadLevelFile
     mov si, offset fileLevel1
     m_fsize si ds
 
-    mov bx,LVL_FILE_SIZE
     cmp ax, LVL_FILE_SIZE
     jne @@badSize
 
@@ -121,44 +121,45 @@ PROC ParseLevelData
     curLine        equ        [word bp+4]
     ;}
 
-    ; si = levelScreen + 2*(curLine * SCRN_BOX_WIDTH)
+    ; si = levelScreen + (curLine * SCRN_BOX_WIDTH)
     ; points to the array address of the current row 
     mov si, offset levelScreen
     mov ax, curLine
-    mov bx, SCRN_BOX_WIDTH
+    mov bx, SCRN_NUM_BOXES_WIDTH
     mul bl
-    shl ax,1
     add si, ax
 
+
+    xor ax,ax
     mov cx, SCRN_NUM_BOXES_WIDTH
     mov di, offset levelLine
 @@parse:
-    mov ax,[di]
+    mov al,[BYTE di]
     cmp al, '*'
     jne @@box
 
     ; Found an *
-    mov [WORD si], WALL
+    mov [BYTE si], WALL
     jmp @@cont
 
 @@box:
     cmp al,'+'
     jne @@player
 
-    mov [WORD si], BOX
+    mov [BYTE si], BOX
     jmp @@cont
 
 @@player:
     cmp al,'@'
     jne @@space
 
-    mov [WORD si], PLAYER
+    mov [BYTE si], PLAYER
     jmp @@cont
 
 @@space:
-    mov [WORD si], FLOOR
+    mov [BYTE si], FLOOR
 @@cont:
-    add si,2
+    inc si
     inc di
     loop @@parse
 
@@ -211,12 +212,12 @@ PROC GetBoxValue
     mov ax, row
     mov bx, SCRN_BOX_WIDTH
     mul bl
-    shl ax,1    
     add si, ax
     add si, column
 
     ; get value
-    mov ax, [si]
+    xor ax,ax
+    mov al, [BYTE si]
     jmp @@end
 @@err:
     mov ax, INVALID

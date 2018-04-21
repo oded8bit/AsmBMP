@@ -7,8 +7,6 @@ LOCALS @@
 
 ; Video constants (VGA)
 VIDEO_MEMORY_ADDRESS_VGA = 0A000h
-VGA_SCREEN_WIDTH         = 320
-VGA_SCREEN_HEIGHT        = 200
 ; Colors
 VGA_COLOR_BLACK          = 0
 ; Global Bitmap constants
