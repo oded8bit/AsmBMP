@@ -43,6 +43,46 @@ DATASEG
 
 CODESEG
 ;------------------------------------------------------------------------
+row, col, dir
+; 
+; Input:
+;     row - current row (register)
+;     col - current col (register)
+;     dir - direction
+;------------------------------------------------------------------------
+MACRO set_new_row_col row, col, dir
+    local _end,_up,_right,_left
+    push cx
+
+    mov cx, dir
+    cmp cx, DIR_DOWN
+    jne _up    
+
+    inc row
+    jmp _end
+_up:
+    cmp cx, DIR_UP
+    jne _right   
+
+    dec row
+    jmp _end
+_right:
+    cmp cx, DIR_RIGHT
+    jne _left    
+
+    inc col
+    jmp _end
+_left:
+    cmp cx, DIR_LEFT
+    jne _end    
+
+    dec row
+    jmp _end      
+ 
+_end:
+    pop cx
+ENDM
+;------------------------------------------------------------------------
 ; ReadLevelFile: 
 ; 
 ; Input:
@@ -333,8 +373,17 @@ PROC MovePlayer
     column        equ        [word bp+6]
     ;}
  
+     ; check valid input
+    mov ax, row
+    cmp ax, SCRN_NUM_BOXES_HEIGHT
+    jae @@err
+
+    mov ax, column
+    cmp ax, SCRN_NUM_BOXES_WIDTH
+    jae @@err
+
     push row
-    push col
+    push column
     push PLAYER
     call SetBoxValue
 
@@ -347,6 +396,7 @@ PROC MovePlayer
     mov currentRow, bx
     mov bx, column
     mov currentCol, bx
+@@err:
 
 @@end:
     popa
@@ -734,6 +784,7 @@ PROC HandleLevelKey
     value2           equ        [word bp-6]
     ;}
 
+    ; dir = keyToDir(key)
     push key
     call KeyToDirection
 
@@ -743,8 +794,11 @@ PROC HandleLevelKey
     mov direction, ax
 
 
-    ;   dir = keyToDir(key)
-    ;   value = getValue(dir)
+    ; bx = current row
+    ; dx = current col
+    mov bx, currentRow
+    mov dx, currentCol
+    
     ;   if (value == WALL)
     ;       sound()
     ;   else if (value == FLOOR)
@@ -766,6 +820,7 @@ PROC HandleLevelKey
     ;   else if (value == TARGET) 
     ;       sound()
 
+    ; value1 = getValue(dir)
     push 1
     push direction
     push currentRow
@@ -773,98 +828,54 @@ PROC HandleLevelKey
     call GetBoxValueInDirection
     mov value1, ax
 
+    ; if (value == WALL)
+    ;    sound()
     cmp ax, WALL
     jne @@chkFloor
 
     jmp @@sound
 @@chkFloor:    
-
-
-
-
-
-
-
-
-
-
-
-
-    ;========================== Key UP
-    cmp ax, KEY_UP
-    jne @@down
-
-    ; TBD
-
-
-    jmp @@end
-@@down:
-    ;========================== Key DOWN
-    cmp ax, KEY_DOWN
-    jne @@left
-
-    push 1
-    push DIR_DOWN
-    push currentRow
-    push currentCol
-    call GetBoxValueInDirection
-
-    ; check box value
-    cmp ax, WALL
-    jne @@isfloor
-
-@@isfloor:
-    ; play sound??
-    jmp @@end
-
-@@left:
-    ;========================== Key LEFT
-    cmp ax, KEY_LEFT
-    jne @@right
-
-
-    jmp @@end
-@@right:
-    ;========================== Key RIGHT
-    cmp ax, KEY_RIGHT
-    jne @@end
-
-    jmp @@end
-
-@@isfloor:
+    ; else if (value == FLOOR)
+    ;    move(dir)
     cmp ax, FLOOR
-    jne @@found_box
-    ; floor
-    mov bx, currentRow
-    inc bx
-    mov dx, currentCol
+    jne @@box
 
-    jmp @@move
-@@found_box:
+    set_new_row_col bx, dx, direction
 
-
-@@move:
     push bx
     push dx
     call MovePlayer
 
+    jmp @@end
+@@box:
+    ; else if (value == BOX) {
+    ;   value2 = getValue(2-dir)
+    ;   if (value2 == INVALID) {
+    ;       sound()
+    ;   }
+    ;   else if (value2 == WALL) {
+    ;       sound()
+    ;   }
+    ;   else if (value2 == FLOOR) {
+    ;       move(dir)
+    ;       movBox(dir)
+    ;   }
+    ;   else if (value2 == TARGET) {
+    ;       move(dir)
+    ;       movBox(dir)
+    ;       hitTarget()
+    ;   }
+    ; }
+    cmp ax, BOX
+    jne @@target
+
+    
 
     jmp @@end
-@@left:
-    cmp ax, KEY_DOWN
-    jne @@right
+@@target:
+
 
     jmp @@end
-@@right:
-    cmp ax, KEY_E
-    jne @@up
-
-    jmp @@end
-@@done:
-    ; exit to welcome page
-    mov [_GameState], STATE_WELCOME
-    jmp @@end    
-
 @@sound:
 
     jmp @@end
