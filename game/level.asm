@@ -28,6 +28,7 @@ DIR_UP                  = 1
 DIR_DOWN                = 2
 DIR_LEFT                = 3
 DIR_RIGHT               = 4
+DIR_INVALID             = 10
 
 
 DATASEG
@@ -714,9 +715,13 @@ ENDP HandleLevel
 PROC HandleLevelKey
     push bp
     mov bp,sp
+    sub sp,6
     pusha
  
     ; now the stack is
+    ; bp-6 => value 2 steps away
+    ; bp-4 => value 1 step away
+    ; bp-2 => direction
     ; bp+0 => old base pointer
     ; bp+2 => return address
     ; bp+4 => key pressed
@@ -724,15 +729,77 @@ PROC HandleLevelKey
  
     ;{
     key              equ        [word bp+4]
+    direction        equ        [word bp-2]
+    value1           equ        [word bp-4]
+    value2           equ        [word bp-6]
     ;}
 
-    mov ax, key
-    ; Key down
-    cmp ax, KEY_DOWN
-    jne @@up
+    push key
+    call KeyToDirection
+
+    cmp ax, DIR_INVALID
+    jmp @@noArrowKey
+
+    mov direction, ax
+
+
+    ;   dir = keyToDir(key)
+    ;   value = getValue(dir)
+    ;   if (value == WALL)
+    ;       sound()
+    ;   else if (value == FLOOR)
+    ;       move(dir)
+    ;   else if (value == BOX) {
+    ;       value2 = getValue(2-dir)
+    ;       if (value2 == INVALID)
+    ;           sound()
+    ;       else if (value2 == WALL)
+    ;           sound()
+    ;       else if (value2 == FLOOR)
+    ;           move(dir)
+    ;           movBox(dir)
+    ;       else if (value2 == TARGET)
+    ;           move(dir)
+    ;           movBox(dir)
+    ;           hitTarget()
+    ;   }
+    ;   else if (value == TARGET) 
+    ;       sound()
+
+    push 1
+    push direction
+    push currentRow
+    push currentCol
+    call GetBoxValueInDirection
+    mov value1, ax
+
+    cmp ax, WALL
+    jne @@chkFloor
+
+    jmp @@sound
+@@chkFloor:    
+
+
+
+
+
+
+
+
+
+
+
+
+    ;========================== Key UP
+    cmp ax, KEY_UP
+    jne @@down
+
+    ; TBD
+
 
     jmp @@end
-@@up:
+@@down:
+    ;========================== Key DOWN
     cmp ax, KEY_DOWN
     jne @@left
 
@@ -741,10 +808,33 @@ PROC HandleLevelKey
     push currentRow
     push currentCol
     call GetBoxValueInDirection
+
     ; check box value
+    cmp ax, WALL
+    jne @@isfloor
+
+@@isfloor:
+    ; play sound??
+    jmp @@end
+
+@@left:
+    ;========================== Key LEFT
+    cmp ax, KEY_LEFT
+    jne @@right
+
+
+    jmp @@end
+@@right:
+    ;========================== Key RIGHT
+    cmp ax, KEY_RIGHT
+    jne @@end
+
+    jmp @@end
+
+@@isfloor:
     cmp ax, FLOOR
     jne @@found_box
-    ; floow
+    ; floor
     mov bx, currentRow
     inc bx
     mov dx, currentCol
@@ -775,9 +865,75 @@ PROC HandleLevelKey
     mov [_GameState], STATE_WELCOME
     jmp @@end    
 
+@@sound:
+
+    jmp @@end
+@@noArrowKey:
+    ; handle other keys
+    cmp ax, KEY_E
+    jne @@end
+    mov [_GameState], STATE_WELCOME
+
 @@end:
     popa
     mov sp,bp
     pop bp
     ret 2
 ENDP HandleLevelKey
+;------------------------------------------------------------------------
+; KeyToDirection: 
+; 
+; Input:
+;     push  key 
+;     call KeyToDirection
+; 
+; Output: 
+;     AX - direction
+;------------------------------------------------------------------------
+PROC KeyToDirection
+    push bp
+    mov bp,sp
+    push bx
+ 
+    ; now the stack is
+    ; bp+0 => old base pointer
+    ; bp+2 => return address
+    ; bp+4 => key
+    ; saved registers
+ 
+    ;{
+    key        equ        [word bp+4]
+    ;}
+
+    mov ax, key
+    cmp ax, KEY_DOWN
+    jne @@up
+
+    mov ax, DIR_DOWN
+    jmp @@end
+@@up:
+    cmp ax, KEY_UP
+    jne @@right
+
+    mov ax, DIR_UP
+    jmp @@end
+@@right:
+    cmp ax, KEY_RIGHT
+    jne @@left
+
+    mov ax, DIR_RIGHT
+    jmp @@end
+@@right:
+    cmp ax, KEY_LEFT
+    jne @@err
+
+    mov ax, DIR_LEFT
+    jmp @@end    
+@@err:
+    mov ax, DIR_INVALID
+@@end:
+    pop bx
+    mov sp,bp
+    pop bp
+    ret 2
+ENDP KeyToDirection
