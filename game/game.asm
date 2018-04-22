@@ -13,6 +13,7 @@ STATE_EXIT          = 10
 
 DATASEG
     ImageBgLvl1         Bitmap       {ImagePath="screen\\lvl1.bmp"}
+    ImageBgLvl2         Bitmap       {ImagePath="screen\\lvl2.bmp"}
     ImageBox            Bitmap       {ImagePath="assets\\box.bmp"}
     ImageFloor          Bitmap       {ImagePath="assets\\floor.bmp"}
     ImageChar           Bitmap       {ImagePath="assets\\char.bmp"}

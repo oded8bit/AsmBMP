@@ -33,6 +33,7 @@ DIR_INVALID             = 10
 
 DATASEG
     fileLevel1      db          "screen\\lvl1.dat",0
+    fileLevel2      db          "screen\\lvl2.dat",0
 
     levelLine       db          LVL_FILE_LINE_LEN dup(0)
     levelScreen     db          SCRN_ARRAY_SIZE dup(0)
@@ -43,7 +44,7 @@ DATASEG
 
 CODESEG
 ;------------------------------------------------------------------------
-row, col, dir
+; set_new_row_col
 ; 
 ; Input:
 ;     row - current row (register)
@@ -210,8 +211,8 @@ PROC ParseLevelData
 
     mov [BYTE si], PLAYER
     mov dx, curLine
-    mov currentRow, dx          ; row
-    mov currentCol, bx          ; col
+    mov [currentRow], dl          ; row
+    mov [currentCol], bl          ; col
     jmp @@cont
 
 @@space:
@@ -387,15 +388,18 @@ PROC MovePlayer
     push PLAYER
     call SetBoxValue
 
-    push currentRow
-    push currentCol
+    xor ax,ax
+    mov al,[currentRow]
+    push ax
+    mov al, [currentCol]
+    push ax
     push FLOOR
     call SetBoxValue
 
     mov bx, row
-    mov currentRow, bx
+    mov [currentRow], bl
     mov bx, column
-    mov currentCol, bx
+    mov [currentCol], bl
 @@err:
 
 @@end:
@@ -796,8 +800,10 @@ PROC HandleLevelKey
 
     ; bx = current row
     ; dx = current col
-    mov bx, currentRow
-    mov dx, currentCol
+    xor bx,bx
+    xor dx,dx
+    mov bl, [currentRow]
+    mov dl, [currentCol]
     
     ;   if (value == WALL)
     ;       sound()
@@ -821,10 +827,13 @@ PROC HandleLevelKey
     ;       sound()
 
     ; value1 = getValue(dir)
+    xor ax,ax
     push 1
     push direction
-    push currentRow
-    push currentCol
+    mov al, [currentRow]
+    push ax
+    mov al, [currentCol]
+    push ax
     call GetBoxValueInDirection
     mov value1, ax
 
@@ -934,7 +943,7 @@ PROC KeyToDirection
 
     mov ax, DIR_RIGHT
     jmp @@end
-@@right:
+@@left:
     cmp ax, KEY_LEFT
     jne @@err
 
