@@ -188,6 +188,66 @@ PROC ParseLevelData
     ret 2
 ENDP ParseLevelData
 ;------------------------------------------------------------------------
+; SetBoxValue: 
+; 
+; Input:
+;     push  row
+;     push  col
+;     push  value
+;     call SetBoxValue
+; 
+; Output: None
+;------------------------------------------------------------------------
+PROC SetBoxValue
+    push bp
+    mov bp,sp
+    pusha
+ 
+    ; now the stack is
+    ; bp+0 => old base pointer
+    ; bp+2 => return address
+    ; bp+4 => value
+    ; bp+6 => col
+    ; bp+8 => row
+    ; saved registers
+ 
+    ;{
+    value        equ        [word bp+4]
+    column       equ        [word bp+6]
+    row          equ        [word bp+8]
+    ;}
+ 
+    ; check valid input
+    mov ax, row
+    cmp ax, SCRN_NUM_BOXES_HEIGHT
+    jae @@err
+
+    mov ax, column
+    cmp ax, SCRN_NUM_BOXES_WIDTH
+    jae @@err    
+
+    ; si = levelScreen + (row * SCRN_BOX_WIDTH) + column
+    ; points to the array address of the current (row,col)
+    mov si, offset levelScreen
+    mov ax, row
+    mov bx, SCRN_BOX_WIDTH
+    mul bl
+    add si, ax
+    add si, column
+
+    mov ax, value
+    mov [BYTE si], al
+
+    jmp @@end
+@@err:
+    ; do nothing
+@@end:
+    popa
+    mov sp,bp
+    pop bp
+    ret 6
+ENDP SetBoxValue
+;------------------------------------------------------------------------
 ; GetBoxValue: 
 ; 
 ; Input:
@@ -245,6 +305,54 @@ PROC GetBoxValue
     pop bp
     ret 4
 ENDP GetBoxValue
+;------------------------------------------------------------------------
+; MovePlayer: 
+; 
+; Input:
+;     push  target row
+;     push  target col
+;     call MovePlayer
+; 
+; Output: None
+;------------------------------------------------------------------------
+PROC MovePlayer
+    push bp
+    mov bp,sp
+    pusha
+ 
+    ; now the stack is
+    ; bp+0 => old base pointer
+    ; bp+2 => return address
+    ; bp+4 => col
+    ; bp+6 => row
+    ; saved registers
+ 
+    ;{
+    row           equ        [word bp+4]
+    column        equ        [word bp+6]
+    ;}
+ 
+    push row
+    push col
+    push PLAYER
+    call SetBoxValue
+
+    push currentRow
+    push currentCol
+    push FLOOR
+    call SetBoxValue
+
+    mov bx, row
+    mov currentRow, bx
+    mov bx, column
+    mov currentCol, bx
+
+@@end:
+    popa
+    mov sp,bp
+    pop bp
+    ret 4
+ENDP MovePlayer
 ;------------------------------------------------------------------------
 ; Gets the value in the box in the specified direction relative to 
 ; current player coordinates
@@ -309,6 +417,7 @@ ENDP GetBoxValueInDirection_Coord
 ; current row,col
 ; 
 ; Input:
+;     push  distance - 1 or 2
 ;     push  direction
 ;     push  current row
 ;     push  current col
@@ -331,28 +440,32 @@ PROC GetBoxValueInDirection
     ; bp+4 => current col
     ; bp+6 => current row
     ; bp+8 => direction
+    ; bp+10 => distance
     ; saved registers
  
     ;{
     col             equ        [word bp+4]
     row             equ        [word bp+6]
     direction       equ        [word bp+8]
+    distance        equ        [word bp+10]
     ;}
 
+    mov bx, distance
+    
     ; switch (direction) {
     mov ax, direction
         ; case DIR_DOWN:
         cmp ax, DIR_DOWN
         jne @@dup
- 
-        inc row
+                 
+        add row, bx
         jmp @@check
 @@dup:
         ; case DIR_UP
         cmp ax, DIR_UP
         jne @@dleft
  
-        dec row
+        sub row, bx
         jmp @@check
 
 @@dleft:
@@ -360,7 +473,7 @@ PROC GetBoxValueInDirection
         cmp ax, DIR_LEFT
         jne @@dright
  
-        dec col
+        sub col, bx
         jmp @@check
 
 @@dright:
@@ -368,10 +481,22 @@ PROC GetBoxValueInDirection
         cmp ax, DIR_RIGHT
         jne @@default
  
-        dec col
+        add col, bx
         jmp @@check
 
 @@check:
+    ; check row value valid
+    cmp row, 0
+    jb @@default
+    cmp row, SCRN_NUM_BOXES_HEIGHT
+    ja @@default
+
+    ; check col value valid
+    cmp col, 0
+    jb @@default
+    cmp col, SCRN_NUM_BOXES_WIDTH
+    ja @@default
+
     push row
     push col
     call GetBoxValue    ; will set AX
@@ -548,40 +673,23 @@ PROC HandleLevel
     ; VGA mode
     gr_set_video_mode_vga
 
+    ;------------------The main loop------------------
 @@handle:
     ; Draw background
     push lvlBmp
     call DrawBoard
 
     call WaitForKeypress
-    ; Key down
-    cmp ax, KEY_DOWN
-    jne @@up
+    ; handle the key press
+    push ax
+    call HandleLevelKey
 
-    call LevelKeyDown
-    jmp @@handle
-@@up:
-    cmp ax, KEY_DOWN
-    jne @@left
+    ; Exit if needed
+    cmp [_GameState], STATE_EXIT
+    je @@end
 
-    call LevelKeyUp
-    jmp @@handle
-@@left:
-    cmp ax, KEY_DOWN
-    jne @@right
-
-    call LevelKeyLeft
-    jmp @@handle
-@@right:
-    cmp ax, KEY_E
-    jne @@up
-
-    call LevelKeyRight
-    jmp @@handle
-@@done:
-    ; exit to welcome page
-    mov [_GameState], STATE_WELCOME
-    jmp @@end
+    jmp @@handle                    ; Draw screen and get next key press
+    ;--------------------------------------------------
 
 @@fileError:
     push offset ErrLoadLevel
@@ -595,160 +703,81 @@ PROC HandleLevel
     ret 
 ENDP HandleLevel
 ;------------------------------------------------------------------------
-; LevelKeyDown: 
+; HandleLevelKey: 
 ; 
 ; Input:
+;     push key
 ;     call LevelKeyDown
 ; 
 ; Output: None
 ;------------------------------------------------------------------------
-PROC LevelKeyDown
+PROC HandleLevelKey
     push bp
     mov bp,sp
-    ;sub sp,2            ;<- set value
     pusha
  
     ; now the stack is
-    ; bp-2 => 
     ; bp+0 => old base pointer
     ; bp+2 => return address
-    ; bp+4 => 
-    ; bp+6 => 
+    ; bp+4 => key pressed
     ; saved registers
  
     ;{
-    varName_         equ        [word bp-2]
- 
-    parName2_        equ        [word bp+4]
-    parName1_        equ        [word bp+6]
+    key              equ        [word bp+4]
     ;}
- 
+
+    mov ax, key
+    ; Key down
+    cmp ax, KEY_DOWN
+    jne @@up
+
+    jmp @@end
+@@up:
+    cmp ax, KEY_DOWN
+    jne @@left
+
+    push 1
+    push DIR_DOWN
+    push currentRow
+    push currentCol
+    call GetBoxValueInDirection
+    ; check box value
+    cmp ax, FLOOR
+    jne @@found_box
+    ; floow
+    mov bx, currentRow
+    inc bx
+    mov dx, currentCol
+
+    jmp @@move
+@@found_box:
+
+
+@@move:
+    push bx
+    push dx
+    call MovePlayer
+
+
+    jmp @@end
+@@left:
+    cmp ax, KEY_DOWN
+    jne @@right
+
+    jmp @@end
+@@right:
+    cmp ax, KEY_E
+    jne @@up
+
+    jmp @@end
+@@done:
+    ; exit to welcome page
+    mov [_GameState], STATE_WELCOME
+    jmp @@end    
+
 @@end:
     popa
     mov sp,bp
     pop bp
-    ret ;4               ;<- set value
-ENDP LevelKeyDown
-;------------------------------------------------------------------------
-; LevelKeyUp: 
-; 
-; Input:
-;     push  X1 
-;     push  X2
-;     call LevelKeyUp
-; 
-; Output: 
-;     AX - 
-; 
-; Affected Registers: 
-; Limitations: 
-;------------------------------------------------------------------------
-PROC LevelKeyUp
-    push bp
-    mov bp,sp
-    ;sub sp,2            ;<- set value
-    pusha
- 
-    ; now the stack is
-    ; bp-2 => 
-    ; bp+0 => old base pointer
-    ; bp+2 => return address
-    ; bp+4 => 
-    ; bp+6 => 
-    ; saved registers
- 
-    ;{
-    varName_         equ        [word bp-2]
- 
-    parName2_        equ        [word bp+4]
-    parName1_        equ        [word bp+6]
-    ;}
- 
-@@end:
-    popa
-    mov sp,bp
-    pop bp
-    ret ;4               ;<- set value
-ENDP LevelKeyUp
-;------------------------------------------------------------------------
-; LevelKeyLeft: 
-; 
-; Input:
-;     push  X1 
-;     push  X2
-;     call LevelKeyLeft
-; 
-; Output: 
-;     AX - 
-; 
-; Affected Registers: 
-; Limitations: 
-;------------------------------------------------------------------------
-PROC LevelKeyLeft
-    push bp
-    mov bp,sp
-    ;sub sp,2            ;<- set value
-    pusha
- 
-    ; now the stack is
-    ; bp-2 => 
-    ; bp+0 => old base pointer
-    ; bp+2 => return address
-    ; bp+4 => 
-    ; bp+6 => 
-    ; saved registers
- 
-    ;{
-    varName_         equ        [word bp-2]
- 
-    parName2_        equ        [word bp+4]
-    parName1_        equ        [word bp+6]
-    ;}
- 
-@@end:
-    popa
-    mov sp,bp
-    pop bp
-    ret ;4               ;<- set value
-ENDP LevelKeyLeft
-;------------------------------------------------------------------------
-; LevelKeyRight: 
-; 
-; Input:
-;     push  X1 
-;     push  X2
-;     call LevelKeyRight
-; 
-; Output: 
-;     AX - 
-; 
-; Affected Registers: 
-; Limitations: 
-;------------------------------------------------------------------------
-PROC LevelKeyRight
-    push bp
-    mov bp,sp
-    ;sub sp,2            ;<- set value
-    pusha
- 
-    ; now the stack is
-    ; bp-2 => 
-    ; bp+0 => old base pointer
-    ; bp+2 => return address
-    ; bp+4 => 
-    ; bp+6 => 
-    ; saved registers
- 
-    ;{
-    varName_         equ        [word bp-2]
- 
-    parName2_        equ        [word bp+4]
-    parName1_        equ        [word bp+6]
-    ;}
- 
-@@end:
-    popa
-    mov sp,bp
-    pop bp
-    ret ;4               ;<- set value
-ENDP LevelKeyRight
+    ret 2
+ENDP HandleLevelKey
